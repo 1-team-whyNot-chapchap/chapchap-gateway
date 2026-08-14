@@ -37,19 +37,6 @@ spring:
               filters:
                 - RewritePath=/${AUTH_SERVICE_NAME}${AUTH_SERVICE_OPEN_API_PATH}, ${AUTH_SERVICE_OPEN_API_PATH}
 
-              # Product-Service
-            - id: ${PRODUCT_SERVICE_NAME}
-              uri: ${PRODUCT_SERVICE_URI}
-              predicates:
-                - Path=${PRODUCT_SERVICE_PREDICATE}
-              # Product-Service Open API
-            - id: ${PRODUCT_SERVICE_NAME}-docs
-              uri: ${PRODUCT_SERVICE_URI}
-              predicates:
-                - Path=/${PRODUCT_SERVICE_NAME}${PRODUCT_SERVICE_OPEN_API_PATH}
-              filters:
-                - RewritePath=/${PRODUCT_SERVICE_NAME}${PRODUCT_SERVICE_OPEN_API_PATH}, ${PRODUCT_SERVICE_OPEN_API_PATH}
-
               # Subscription-Service
             - id: ${SUBSCRIPTION_SERVICE_NAME}
               uri: ${SUBSCRIPTION_SERVICE_URI}
@@ -97,9 +84,6 @@ springdoc:
         # Auth-Service Open API Doc Url
       - name: ${AUTH_SERVICE_NAME}
         url: /${AUTH_SERVICE_NAME}${AUTH_SERVICE_OPEN_API_PATH}
-        # Product-Service Open API Doc Url
-      - name: ${PRODUCT_SERVICE_NAME}
-        url: /${PRODUCT_SERVICE_NAME}${PRODUCT_SERVICE_OPEN_API_PATH}
         # Subscription-Service Open API Doc Url
       - name: ${SUBSCRIPTION_SERVICE_NAME}
         url: /${SUBSCRIPTION_SERVICE_NAME}${SUBSCRIPTION_SERVICE_OPEN_API_PATH}
