@@ -27,9 +27,14 @@ import java.util.Optional;
 @Component
 @RequiredArgsConstructor
 public class AuthFilter implements GlobalFilter, Ordered {
+
+    private static final String USER_ID_HEADER = "X-User-Id";
+    private static final String USER_ROLE_HEADER = "X-User-Role";
+
     private final JwtProvider jwtProvider;
     private final JwtConfig jwtConfig;
     private final ObjectMapper objectMapper;
+
 
     /**
      * 게이트웨이를 통과하는 모든 요청에서 JWT를 확인하고,
@@ -42,15 +47,28 @@ public class AuthFilter implements GlobalFilter, Ordered {
             @NonNull GatewayFilterChain chain    // 다음 Gateway 필터 또는 실제 라우팅으로 요청을 넘기는 객체
     ) {
         try {
+
+            ServerHttpRequest sanitizedRequest = exchange.getRequest()
+                    .mutate()
+                    .headers(headers -> {
+                        headers.remove(USER_ID_HEADER);
+                        headers.remove(USER_ROLE_HEADER);
+                    })
+                    .build();
+
+            ServerWebExchange sanitizedExchange = exchange.mutate()
+                    .request(sanitizedRequest)
+                    .build();
+
             // 1. 클라이언트 요청의 Authorization 헤더에서 Bearer 토큰을 추출한다.
             // 예시: Authorization: Bearer eyJhbGciOiJIUzI1NiJ9...
-            Optional<String> optionalToken = jwtProvider.extractAccessToken(exchange);
+            Optional<String> optionalToken = jwtProvider.extractAccessToken(sanitizedExchange);
 
             // 2. 토큰이 없는 요청은 인증하지 않고 그대로 다음 단계로 전달한다.
             // 로그인, 회원가입, Swagger 문서처럼 공개 API가 이 경우에 해당한다.
             // 인증이 필요한 API는 하위 서비스의 @PreAuthorize가 최종적으로 막는다.
             if (optionalToken.isEmpty()) {
-                return chain.filter(exchange);
+                return chain.filter(sanitizedExchange);
             }
 
             // 3. 토큰이 존재하면 서명·만료 여부를 검증하고 JWT의 Payload(Claims)를 가져온다.
@@ -60,17 +78,17 @@ public class AuthFilter implements GlobalFilter, Ordered {
             // 4. 하위 서비스로 전달할 요청을 새로 만든다.
             // JWT 원본은 하위 서비스에 전달하지 않고 제거한다.
             // 대신 JWT에서 검증한 사용자 ID와 역할만 내부 헤더로 전달한다.
-            ServerHttpRequest serverHttpRequest = exchange.getRequest().mutate()
+            ServerHttpRequest serverHttpRequest = sanitizedRequest.mutate()
                     .headers(httpHeaders -> httpHeaders.remove(jwtConfig.headerKey()))
-                    .header("X-User-Id", claims.getSubject())              // JWT의 subject: 사용자 ID
-                    .header("X-User-Role", claims.get("role", String.class)) // JWT의 role claim: 사용자 역할
+                    .header(USER_ID_HEADER, claims.getSubject())              // JWT의 subject: 사용자 ID
+                    .header(USER_ROLE_HEADER, claims.get("role", String.class)) // JWT의 role claim: 사용자 역할
                     .build();
 
             // 5. 변경된 요청을 다음 필터 또는 라우팅 대상 하위 서비스로 전달한다.
             // 하위 서비스의 HeaderAuthenticationFilter는 X-User-Id, X-User-Role을 읽어
             // SecurityContext를 만들고, @PreAuthorize가 이를 기준으로 권한을 판단한다.
             return chain.filter(
-                    exchange.mutate()
+                    sanitizedExchange.mutate()
                             .request(serverHttpRequest)
                             .build()
             );
