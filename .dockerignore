@@ -1,0 +1,10 @@
+# Allow only build inputs. Excludes .env, keys, reports, .git and local artifacts.
+**
+!gradle/
+!gradle/**
+!gradlew
+!build.gradle
+!settings.gradle
+!src/
+!src/**
+!Dockerfile

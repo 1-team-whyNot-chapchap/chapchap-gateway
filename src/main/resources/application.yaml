@@ -1,13 +1,15 @@
 server:
-  port: ${APP_PORT}
+  port: ${APP_PORT:8080}
 
 spring:
+  config:
+    import: optional:file:.env[.properties]
   application:
     name: chapchap-gateway
   web:
     error:
-      include-stacktrace: always
-      include-message: always
+      include-stacktrace: never
+      include-message: never
   cloud:
     gateway:
       server:
@@ -17,6 +19,7 @@ spring:
               args:
                 maxSize: 20MB
           globalcors:
+            add-to-simple-url-handler-mapping: true
             cors-configurations:
               '[/**]':
                 allowed-origins: ${CORS_ALLOW_ORIGIN}
@@ -24,6 +27,11 @@ spring:
                 allowed-headers: "*"
                 allow-credentials: true
           routes:
+            - id: customer-consultation-websocket
+              uri: ${CUSTOMER_SERVICE_WS_URI:ws://localhost:8084}
+              predicates:
+                - Path=/ws/customer/consultations
+                - Method=GET
               # Auth-Service
             - id: ${AUTH_SERVICE_NAME}
               uri: ${AUTH_SERVICE_URI}
@@ -98,4 +106,13 @@ jwt:
   secret: ${JWT_SECRET}
   header-key: Authorization
   scheme: Bearer
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never
 
