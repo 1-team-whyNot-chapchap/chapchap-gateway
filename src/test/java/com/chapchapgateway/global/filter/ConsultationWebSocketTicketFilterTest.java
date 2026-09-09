@@ -35,13 +35,14 @@ class ConsultationWebSocketTicketFilterTest {
         var exchange = MockServerWebExchange.from(MockServerHttpRequest.post(ConsultationWebSocketTicketFilter.TICKET_PATH)
                 .header("Origin", "http://localhost:5173").header("Authorization", "Bearer " + token()));
         target.filter(exchange, ignored -> Mono.error(new AssertionError("Ticket must not route"))).block();
+        assertThat(exchange.getResponse().getHeaders().getFirst("Access-Control-Allow-Credentials")).isEqualTo("true");
         return mapper.readTree(exchange.getResponse().getBodyAsString().block()).get("ticket").asString();
     }
     private MockServerWebExchange socket(String ticket, String origin) {
         return MockServerWebExchange.from(MockServerHttpRequest.get(ConsultationWebSocketTicketFilter.SOCKET_PATH)
                 .header("Origin", origin).header("Upgrade", "websocket")
                 .header("Sec-WebSocket-Protocol", "v12.stomp, ticket." + ticket)
-                .header("X-User-Id", "999").header("Cookie", "private=value"));
+                .header("X-User-Expires-At", "9999999999").header("X-User-Id", "999").header("Cookie", "private=value"));
     }
     @Test
     void ticketIsConsumedOnceAndOnlyVerifiedIdentityReachesCustomer() {
@@ -50,6 +51,8 @@ class ConsultationWebSocketTicketFilterTest {
         AtomicBoolean called = new AtomicBoolean();
         filter.filter(exchange, sanitized -> new AuthFilter(jwt, config, mapper).filter(sanitized, routed -> {
             called.set(true);
+            assertThat(Long.parseLong(routed.getRequest().getHeaders().getFirst("X-User-Expires-At")))
+                    .isBetween(Instant.now().getEpochSecond(), Instant.now().plusSeconds(121).getEpochSecond());
             assertThat(routed.getRequest().getHeaders().getFirst("X-User-Id")).isEqualTo("42");
             assertThat(routed.getRequest().getHeaders().getFirst("X-User-Role")).isEqualTo("CUSTOMER");
             assertThat(routed.getRequest().getHeaders().getFirst("Sec-WebSocket-Protocol")).isEqualTo("v12.stomp");

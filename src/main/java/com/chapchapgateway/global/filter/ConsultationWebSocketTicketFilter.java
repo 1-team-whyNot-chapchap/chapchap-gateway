@@ -68,6 +68,7 @@ public class ConsultationWebSocketTicketFilter implements WebFilter, Ordered {
         exchange.getResponse().getHeaders().set("Cache-Control", "no-store");
         if (TICKET_PATH.equals(path)) {
             exchange.getResponse().getHeaders().set("Access-Control-Allow-Origin", origin);
+            exchange.getResponse().getHeaders().set("Access-Control-Allow-Credentials", "true");
             exchange.getResponse().getHeaders().set("Vary", "Origin");
             if (exchange.getRequest().getMethod() == HttpMethod.OPTIONS) {
                 exchange.getResponse().getHeaders().set("Access-Control-Allow-Methods", "POST");
