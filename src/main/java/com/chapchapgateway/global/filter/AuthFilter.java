@@ -53,6 +53,7 @@ public class AuthFilter implements GlobalFilter, Ordered {
                     .headers(headers -> {
                         headers.remove(USER_ID_HEADER);
                         headers.remove(USER_ROLE_HEADER);
+                        headers.remove("X-User-Expires-At");
                     })
                     .build();
 
@@ -75,11 +76,14 @@ public class AuthFilter implements GlobalFilter, Ordered {
             // 검증 실패 시 예외가 발생하며, 아래 catch에서 401 응답으로 처리한다.
             Claims claims = jwtProvider.extractClaims(optionalToken.get());
 
+            if (claims.getExpiration() == null) return unauthorized(exchange);
+
             // 4. 하위 서비스로 전달할 요청을 새로 만든다.
             // JWT 원본은 하위 서비스에 전달하지 않고 제거한다.
             // 대신 JWT에서 검증한 사용자 ID와 역할만 내부 헤더로 전달한다.
             ServerHttpRequest serverHttpRequest = sanitizedRequest.mutate()
                     .headers(httpHeaders -> httpHeaders.remove(jwtConfig.headerKey()))
+                    .header("X-User-Expires-At", Long.toString(claims.getExpiration().toInstant().getEpochSecond()))
                     .header(USER_ID_HEADER, claims.getSubject())              // JWT의 subject: 사용자 ID
                     .header(USER_ROLE_HEADER, claims.get("role", String.class)) // JWT의 role claim: 사용자 역할
                     .build();
