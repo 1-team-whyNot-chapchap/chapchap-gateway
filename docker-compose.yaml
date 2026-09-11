@@ -1,0 +1,27 @@
+services:
+  gateway:
+    build: .
+    image: chapchap-gateway:local
+    env_file:
+      - ${ENV_FILE:-.env}
+    environment:
+      APP_PORT: "8080"
+      TZ: Asia/Seoul
+      AUTH_SERVICE_URI: ${COMPOSE_AUTH_SERVICE_URI:-http://auth-service:8081}
+      CUSTOMER_SERVICE_URI: ${COMPOSE_CUSTOMER_SERVICE_URI:-http://customer-service:8084}
+      CUSTOMER_SERVICE_WS_URI: ${COMPOSE_CUSTOMER_SERVICE_WS_URI:-ws://customer-service:8084}
+      SUBSCRIPTION_SERVICE_URI: ${COMPOSE_SUBSCRIPTION_SERVICE_URI:-http://host.docker.internal:8082}
+      DELIVERY_SERVICE_URI: ${COMPOSE_DELIVERY_SERVICE_URI:-http://host.docker.internal:8083}
+    ports:
+      - "127.0.0.1:${APP_PORT:-8080}:8080"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - backend
+    restart: unless-stopped
+    stop_grace_period: 30s
+
+networks:
+  backend:
+    external: true
+    name: ${CHAPCHAP_NETWORK:-chapchap-network}
