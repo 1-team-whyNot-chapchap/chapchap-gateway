@@ -84,12 +84,6 @@ spring:
               filters:
                 - RewritePath=/${CUSTOMER_SERVICE_NAME}${CUSTOMER_SERVICE_OPEN_API_PATH}, ${CUSTOMER_SERVICE_OPEN_API_PATH}
 
-              # MinIO
-            - id: storage-minio
-              uri: ${MINIO_API_URI}
-              predicates:
-                - Path=/msa4-team1/**
-
 # OPEN API
 springdoc:
   swagger-ui:
